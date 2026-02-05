@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Valentine</title>
+  <style>
+    :root{
+      --bg: #f7c6d8;
+      --bg2:#f4b7cf;
+      --card:#ffffff;
+      --ink:#1a1a1a;
+      --muted:#6b6b6b;
+      --yes:#e91e63;
+      --yesDark:#c2185b;
+      --no:#d9d9d9;
+      --shadow: 0 22px 60px rgba(0,0,0,.18);
+      --radius: 18px;
+    }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      min-height:100vh;
+      display:grid;
+      place-items:center;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:
+        radial-gradient(900px 600px at 25% 20%, rgba(255,255,255,.35), transparent 60%),
+        radial-gradient(900px 600px at 80% 30%, rgba(255,255,255,.25), transparent 60%),
+        linear-gradient(180deg, var(--bg), var(--bg2));
+      overflow:hidden;
+    }
+
+    .card{
+      width:min(900px, 92vw);
+      min-height: 420px;
+      background: var(--card);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      padding: clamp(18px, 3vw, 28px);
+      display:grid;
+      gap: 14px;
+      justify-items:center;
+      text-align:center;
+      position:relative;
+      max-height: 90vh;
+      overflow: auto;
+     -webkit-overflow-scrolling: touch;
+    }
+
+    /* Teddy */
+    .mascotWrap{
+      display:grid;
+      place-items:center;
+      gap:6px;
+      margin-top: 6px;
+      user-select:none;
+    }
+    .mascotName{
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: .3px;
+      font-weight: 700;
+    }
+    .mascot{
+      width: 86px;
+      height: 86px;
+      display:block;
+    }
+
+    .title{
+      margin: 8px 0 0;
+      font-size: clamp(22px, 3.2vw, 34px);
+      font-weight: 800;
+      color: var(--ink);
+      letter-spacing: .2px;
+    }
+
+    .actions{
+      position:relative;
+      width:min(520px, 92%);
+      height: 92px;
+      margin-top: 6px;
+      display:grid;
+      place-items:center;
+    }
+
+    .btn{
+      border:0;
+      font-weight: 900;
+      cursor:pointer;
+      transition: transform .12s ease;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:active{ transform: scale(.98); }
+
+    .yes{
+      background: var(--yes);
+      color:white;
+      padding: 16px 34px;
+      border-radius: 999px;
+      font-size: 18px;
+      box-shadow: 0 14px 26px rgba(233,30,99,.28);
+      position:relative;
+      z-index:2;
+    }
+
+    .no{
+      background: var(--no);
+      color:#333;
+      padding: 10px 16px;
+      border-radius: 999px;
+      font-size: 13px;
+      border: 1px solid rgba(0,0,0,.08);
+      position:absolute;
+      left: 68%;
+      top: 50%;
+      transform: translate(-50%,-50%);
+      z-index:3;
+      will-change: transform;
+    }
+
+    .tinyNote{
+      font-size: 11px;
+      color: rgba(0,0,0,.35);
+      margin-top: 4px;
+      user-select:none;
+    }
+
+    /* After YES */
+    .reveal{
+      display:none;
+      width:min(560px, 95%);
+      margin-top: 10px;
+      text-align:center;
+    }
+    .reveal.show{ display:block; }
+
+    .yay{
+      font-weight: 900;
+      color: var(--ink);
+      font-size: clamp(18px, 2.6vw, 26px);
+      margin: 6px 0 10px;
+    }
+
+    .videoWrap{
+  width:100%;
+  border-radius: 18px;
+  overflow:hidden;
+
+  /* nicer for white card */
+  border: 1px solid rgba(0,0,0,.12);
+  background: #000;
+  box-shadow: 0 16px 32px rgba(0,0,0,.14);
+
+  /* KEY: force it to fit on small screens */
+  max-height: 55vh;
+}
+
+     video{
+  width:100%;
+  height:100%;
+  max-height: 55vh;
+
+  /* show the whole video */
+  object-fit: contain;
+
+  display:block;
+  background:#000;
+}
+
+
+    /* Confetti canvas */
+    canvas#confetti{
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      z-index:50;
+    }
+
+    /* YES inflate like the video */
+    .yes.blowUp{
+      animation: blowUp 650ms cubic-bezier(.2,.9,.2,1) forwards;
+      transform-origin: 50% 60%;
+    }
+    @keyframes blowUp{
+      0%   { transform: scale(1); filter: brightness(1); }
+      55%  { transform: scale(1.35); filter: brightness(1.05); }
+      100% { transform: scale(1.0); filter: brightness(1); }
+    }
+
+    /* Smooth page feel */
+    .card, .btn, .no { backface-visibility:hidden; }
+
+    @media (prefers-reduced-motion: reduce){
+      .yes.blowUp{ animation:none; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="confetti"></canvas>
+
+  <div class="card" id="card">
+    <div class="mascotWrap">
+      <!-- Cute pink teddy bear (Chowder) -->
+      <svg class="mascot" viewBox="0 0 120 120" aria-label="Chowder the teddy bear" role="img">
+        <!-- heart -->
+        <path d="M92 19c6-6 16-3 18 4 2 7-3 14-9 18-6 4-13 8-13 8s-7-4-13-8c-6-4-11-11-9-18 2-7 12-10 18-4 2 2 3 4 4 6 1-2 2-4 4-6z"
+              fill="#ff4f8d" opacity=".95"/>
+        <!-- ears -->
+        <circle cx="30" cy="40" r="16" fill="#ff9fbe"/>
+        <circle cx="90" cy="40" r="16" fill="#ff9fbe"/>
+        <circle cx="30" cy="40" r="9" fill="#ff7faa" opacity=".9"/>
+        <circle cx="90" cy="40" r="9" fill="#ff7faa" opacity=".9"/>
+        <!-- head -->
+        <circle cx="60" cy="62" r="34" fill="#ff9fbe"/>
+        <!-- snout -->
+        <ellipse cx="60" cy="76" rx="18" ry="14" fill="#ff7faa" opacity=".95"/>
+        <!-- eyes -->
+        <circle cx="48" cy="60" r="4.2" fill="#1a1a1a"/>
+        <circle cx="72" cy="60" r="4.2" fill="#1a1a1a"/>
+        <!-- nose -->
+        <path d="M60 68c4 0 7 3 0 6-7-3-4-6 0-6z" fill="#1a1a1a"/>
+        <!-- blush -->
+        <circle cx="40" cy="72" r="5.5" fill="#ff5b95" opacity=".35"/>
+        <circle cx="80" cy="72" r="5.5" fill="#ff5b95" opacity=".35"/>
+      </svg>
+      <div class="mascotName">Chowder</div>
+    </div>
+
+    <div class="title" id="title">Kaedi Motau will you be my valentine?</div>
+
+    <div class="actions" id="actions">
+      <button class="btn yes" id="yesBtn" type="button">Yes</button>
+      <button class="btn no" id="noBtn" type="button">No</button>
+    </div>
+
+    <div class="tinyNote" id="tinyNote"> </div>
+
+    <div class="reveal" id="reveal">
+      <div class="yay" id="yayText">YAY! 🎉</div>
+      <div class="videoWrap">
+        <video id="valVideo" controls playsinline preload="metadata">
+          <!-- Replace with your uploaded filename later -->
+          <source id="videoSource" src="your-video.mp4" type="video/mp4" />
+          Your browser can’t play this video.
+        </video>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // -----------------------------
+    // CONFETTI (lightweight + smooth)
+    // -----------------------------
+    const canvas = document.getElementById('confetti');
+    const ctx = canvas.getContext('2d', { alpha: true });
+    let confetti = [];
+    let running = false;
+
+    function resizeCanvas(){
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      canvas.width = Math.floor(window.innerWidth * dpr);
+      canvas.height = Math.floor(window.innerHeight * dpr);
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+    }
+    window.addEventListener('resize', resizeCanvas, { passive:true });
+    resizeCanvas();
+
+    const rand=(a,b)=>Math.random()*(b-a)+a;
+
+    function burstConfetti(count=220){
+      confetti = [];
+      const colors = ['#ff4f8d','#ff9fbe','#7c4dff','#ffd166','#06d6a0','#ffffff'];
+      for(let i=0;i<count;i++){
+        confetti.push({
+          x: rand(0, window.innerWidth),
+          y: rand(-60, -10),
+          w: rand(6, 12),
+          h: rand(8, 18),
+          vx: rand(-2.6, 2.6),
+          vy: rand(2.6, 6.8),
+          r: rand(0, Math.PI),
+          vr: rand(-0.18, 0.18),
+          c: colors[(Math.random()*colors.length)|0],
+          life: rand(90, 170)
+        });
+      }
+      if(!running){
+        running = true;
+        requestAnimationFrame(stepConfetti);
+      }
+    }
+
+    function stepConfetti(){
+      ctx.clearRect(0,0,window.innerWidth,window.innerHeight);
+      for(const p of confetti){
+        p.x += p.vx;
+        p.y += p.vy;
+        p.r += p.vr;
+        p.vy += 0.03;
+        p.vx *= 0.995;
+        p.life -= 1;
+
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.r);
+        ctx.fillStyle = p.c;
+        ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
+        ctx.restore();
+      }
+
+      confetti = confetti.filter(p => p.life > 0 && p.y < window.innerHeight + 60);
+      if(confetti.length){
+        requestAnimationFrame(stepConfetti);
+      }else{
+        running = false;
+        ctx.clearRect(0,0,window.innerWidth,window.innerHeight);
+      }
+    }
+
+    // -----------------------------
+    // RANDOM + SMOOTH "NO" MOVEMENT (unpredictable)
+    // - Picks a new random safe position (not always "away")
+    // - Sometimes fakes out / orbits / dashes
+    // - Uses Web Animations API for smooth motion
+    // -----------------------------
+    const actions = document.getElementById('actions');
+    const yesBtn = document.getElementById('yesBtn');
+    const noBtn = document.getElementById('noBtn');
+    const reveal = document.getElementById('reveal');
+    const video = document.getElementById('valVideo');
+    const videoSource = document.getElementById('videoSource');
+
+    let locked = false;
+    let lastJump = 0;
+
+    function clamp(n,min,max){ return Math.max(min, Math.min(max, n)); }
+
+    function rect(el){ return el.getBoundingClientRect(); }
+
+    function getLocalPointer(e){
+      const box = rect(actions);
+      return { x: e.clientX - box.left, y: e.clientY - box.top, box };
+    }
+
+    function overlaps(a, b){
+      return !(a.right < b.left || a.left > b.right || a.bottom < b.top || a.top > b.bottom);
+    }
+
+    function pickSafeTarget(pointer, tries=24){
+      const box = pointer.box;
+      const bw = noBtn.offsetWidth;
+      const bh = noBtn.offsetHeight;
+
+      const yesR = rect(yesBtn);
+
+      for(let i=0;i<tries;i++){
+        // random anywhere, with bias that changes every attempt (less predictable)
+        const biasMode = (Math.random()*4)|0;
+        let x = rand(10, box.width - bw - 10);
+        let y = rand(10, box.height - bh - 10);
+
+        if(biasMode === 0){
+          // top-ish
+          y = rand(8, box.height*0.45);
+        }else if(biasMode === 1){
+          // bottom-ish
+          y = rand(box.height*0.55, box.height - bh - 8);
+        }else if(biasMode === 2){
+          // left-ish
+          x = rand(8, box.width*0.45);
+        }else{
+          // right-ish
+          x = rand(box.width*0.55, box.width - bw - 8);
+        }
+
+        // distance from cursor center (avoid being "catchable")
+        const cx = x + bw/2;
+        const cy = y + bh/2;
+        const dist = Math.hypot(cx - pointer.x, cy - pointer.y);
+        if(dist < 110) continue;
+
+        // avoid overlapping Yes button (convert candidate local to global rect)
+        const candidateGlobal = {
+          left: box.left + x,
+          top:  box.top  + y,
+          right: box.left + x + bw,
+          bottom:box.top  + y + bh
+        };
+        if(overlaps(candidateGlobal, yesR)) continue;
+
+        return { x, y };
+      }
+
+      // fallback: just clamp somewhere far-ish
+      return { x: clamp(pointer.x - 140, 10, pointer.box.width - noBtn.offsetWidth - 10),
+               y: clamp(pointer.y + 30,  10, pointer.box.height - noBtn.offsetHeight - 10) };
+    }
+
+    function moveNoRandom(pointer){
+      const now = performance.now();
+      if(now - lastJump < 90) return; // cooldown for smoothness
+      lastJump = now;
+
+      const current = rect(noBtn);
+      const box = rect(actions);
+      const curX = current.left - box.left;
+      const curY = current.top - box.top;
+
+      // choose target
+      const target = pickSafeTarget(pointer);
+
+      // add a "style" of motion (dash / curve / fake-out) randomly
+      const mode = (Math.random()*4)|0;
+
+      let kf;
+      if(mode === 0){
+        // quick dash with tiny wobble
+        kf = [
+          { transform:`translate(${curX}px, ${curY}px) rotate(${rand(-6,6)}deg)` },
+          { transform:`translate(${(curX+target.x)/2 + rand(-18,18)}px, ${(curY+target.y)/2 + rand(-10,10)}px) rotate(${rand(-10,10)}deg)` },
+          { transform:`translate(${target.x}px, ${target.y}px) rotate(${rand(-6,6)}deg)` }
+        ];
+      } else if(mode === 1){
+        // fake-out: small move toward cursor first, then jump away somewhere random
+        const towardX = clamp(curX + (pointer.x - (curX+noBtn.offsetWidth/2)) * 0.18, 10, box.width - noBtn.offsetWidth - 10);
+        const towardY = clamp(curY + (pointer.y - (curY+noBtn.offsetHeight/2)) * 0.18, 10, box.height - noBtn.offsetHeight - 10);
+        kf = [
+          { transform:`translate(${curX}px, ${curY}px) rotate(0deg)` },
+          { transform:`translate(${towardX}px, ${towardY}px) rotate(${rand(-8,8)}deg)` },
+          { transform:`translate(${target.x}px, ${target.y}px) rotate(${rand(-8,8)}deg)` }
+        ];
+      } else if(mode === 2){
+        // orbit-ish arc
+        const midX = clamp((curX+target.x)/2 + rand(-50,50), 10, box.width - noBtn.offsetWidth - 10);
+        const midY = clamp((curY+target.y)/2 + rand(-35,35), 10, box.height - noBtn.offsetHeight - 10);
+        kf = [
+          { transform:`translate(${curX}px, ${curY}px) rotate(${rand(-6,6)}deg)` },
+          { transform:`translate(${midX}px, ${midY}px) rotate(${rand(-14,14)}deg)` },
+          { transform:`translate(${target.x}px, ${target.y}px) rotate(${rand(-6,6)}deg)` }
+        ];
+      } else {
+        // snap-to with slight overshoot
+        const overX = clamp(target.x + rand(-24,24), 10, box.width - noBtn.offsetWidth - 10);
+        const overY = clamp(target.y + rand(-18,18), 10, box.height - noBtn.offsetHeight - 10);
+        kf = [
+          { transform:`translate(${curX}px, ${curY}px) rotate(0deg)` },
+          { transform:`translate(${overX}px, ${overY}px) rotate(${rand(-10,10)}deg)` },
+          { transform:`translate(${target.x}px, ${target.y}px) rotate(${rand(-6,6)}deg)` }
+        ];
+      }
+
+      // Use WAAPI for smooth movement (less lag than manually updating styles)
+      noBtn.animate(kf, {
+        duration: rand(240, 420),
+        easing: 'cubic-bezier(.2,.85,.2,1)',
+        fill: 'forwards'
+      });
+
+      // Commit final transform so it stays there
+      noBtn.style.transform = `translate(${target.x}px, ${target.y}px)`;
+    }
+
+    // Start position: keep it near the right like the video
+    (function initNo(){
+      const box = rect(actions);
+      const bw = noBtn.offsetWidth;
+      const bh = noBtn.offsetHeight;
+      const x = clamp(box.width*0.68 - bw/2, 10, box.width - bw - 10);
+      const y = clamp(box.height*0.50 - bh/2, 10, box.height - bh - 10);
+      noBtn.style.left = '0px';
+      noBtn.style.top  = '0px';
+      noBtn.style.transform = `translate(${x}px, ${y}px)`;
+    })();
+
+    actions.addEventListener('mousemove', (e) => {
+      if(locked) return;
+      const p = getLocalPointer(e);
+
+      // measure distance from cursor to current NO center
+      const box = p.box;
+      const t = noBtn.style.transform || '';
+      // read translate from transform (simple parse)
+      const m = t.match(/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/);
+      let tx = 0, ty = 0;
+      if(m){ tx = parseFloat(m[1]); ty = parseFloat(m[2]); }
+
+      const cx = tx + noBtn.offsetWidth/2;
+      const cy = ty + noBtn.offsetHeight/2;
+      const dist = Math.hypot(cx - p.x, cy - p.y);
+
+      if(dist < 120){
+        moveNoRandom(p);
+      }
+    }, { passive:true });
+
+    noBtn.addEventListener('mouseenter', (e) => {
+      if(locked) return;
+      moveNoRandom(getLocalPointer(e));
+    });
+
+    noBtn.addEventListener('click', (e) => {
+      if(locked) return;
+      e.preventDefault();
+      // if it somehow gets clicked, jump again
+      const box = rect(actions);
+      moveNoRandom({ x: rand(0, box.width), y: rand(0, box.height), box });
+    });
+
+    // -----------------------------
+    // YES FLOW (match video vibe)
+    // -----------------------------
+    yesBtn.addEventListener('click', () => {
+      if(locked) return;
+      locked = true;
+
+      // inflate feel like the example
+      yesBtn.classList.add('blowUp');
+
+      // confetti burst
+      setTimeout(() => burstConfetti(260), 120);
+
+      // reveal message + video
+      setTimeout(() => {
+        reveal.classList.add('show');
+        try{
+          video.load();
+          video.play().catch(()=>{});
+        }catch{}
+      }, 420);
+    });
+
+    // When you upload your real video, just set:
+    videoSource.src = "SHrek dancing.mp4";
+    video.load();
+  </script>
+</body>
+</html>
